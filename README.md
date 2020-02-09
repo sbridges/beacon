@@ -85,7 +85,7 @@ Configuration
 
 The mapping between JFR events and JMX beans is configured using yaml.
 
-By default Beacon will load beacon-default.yaml which is included in the beacon jar file.
+By default Beacon will load [beacon-default.yaml](https://github.com/sbridges/beacon/blob/master/src/main/resources/com/github/sbridges/beacon/beacon-default.yaml) which is included in the beacon jar file.
 
 To change the default configuration, start your jvm either using,
 
@@ -105,7 +105,7 @@ Configuration yaml file format
 
 Beacon is configured using a yaml file.  
 
-See beacon-default.yaml for an example.
+See [beacon-default.yaml](https://github.com/sbridges/beacon/blob/master/src/main/resources/com/github/sbridges/beacon/beacon-default.yaml) for an example.
 
 The top level of the yaml is a map with a single key called events.  The value of this key is a list.
 
