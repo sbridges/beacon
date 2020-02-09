@@ -1,0 +1,16 @@
+#eclipse
+.classpath
+.project
+.settings
+
+bin
+
+#vim
+*.swp
+*.swn
+*.swo
+
+/target/
+
+dependency-reduced-pom.xml
+.DS_Store
