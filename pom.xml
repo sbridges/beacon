@@ -5,7 +5,7 @@
 
 	<groupId>com.github.sbridges</groupId>
 	<artifactId>beacon</artifactId>
-	<version>1.0.0.0-SNAPSHOT</version>
+	<version>0.9.0.0-SNAPSHOT</version>
 	<name>beacon</name>
 	<description>A tool to expose JFR events over JMX.</description>
 	<url>https://github.com/sbridges/beacon</url>
@@ -23,8 +23,8 @@
 
 	<licenses>
 		<license>
-			<name>BSD License</name>
-			<url>http://www.opensource.org/licenses/bsd-license.php</url>
+			<name>Apache 2.0 License</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0</url>
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
