@@ -14,3 +14,7 @@ bin
 
 dependency-reduced-pom.xml
 .DS_Store
+
+
+pom.xml.releaseBackup
+release.properties

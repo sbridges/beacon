@@ -1,0 +1,27 @@
+export GPG_TTY=$(tty)
+
+
+update .m2/settings.xml to be
+
+
+<settings xmlns="http://maven.apache.org/settings/1.0.0"
+>
+    <servers>
+        <server>
+            <id>ossrh</id>
+            <!-- Your sonatype username -->
+            <username>sbridges</username>
+            <!-- Your sonatype password -->
+            <password>${password}</password>
+        </server>
+    </servers>
+    <profiles>
+        <profile>
+            <id>ossrh</id>
+        </profile>
+    </profiles>
+    <activeProfiles>
+        <activeProfile>ossrh</activeProfile>
+    </activeProfiles>
+</settings>
+
