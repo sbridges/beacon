@@ -72,10 +72,9 @@ public final class Histogram implements HistogramMXBean, RecordedEventListener {
             lastMinuteStats.max = lastMinuteHistogram.getMaxValue();
             lastMinuteStats.mean = lastMinuteHistogram.getMean();
             lastMinuteStats.events = lastMinuteHistogram.getTotalCount();
-            this.lastMinuteStats = lastMinuteStats;
-            
             lastMinuteHistogram.reset();
             //write to establish a happens before for readers of the stats
+            this.lastMinuteStats = lastMinuteStats;
             lastFlushTime = now;
         }
         
