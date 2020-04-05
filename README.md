@@ -17,7 +17,20 @@ Beacon relies on [JFR Event Streaming](https://openjdk.java.net/jeps/349) which 
 Installing
 ==========
 
-TODO
+Add a dependency using maven
+
+
+    <dependency>
+      <groupId>com.github.sbridges</groupId>
+      <artifactId>beacon</artifactId>
+      <version>${version}</version>
+    </dependency>
+
+
+or gradle
+
+    implementation 'com.github.sbridges:beacon:${version}
+
 
 Running
 =======
