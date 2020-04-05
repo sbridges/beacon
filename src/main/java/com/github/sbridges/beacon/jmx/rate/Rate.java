@@ -59,7 +59,7 @@ public final class Rate implements RecordedEventListener, RateMXBean {
             double delta = value - lastFlushValue;
 
             if (elapsed > 0) {
-                rate = delta / elapsed * 1000;
+                rate = (delta / elapsed) * 1000;
             } else {
                 rate = 0;
             }

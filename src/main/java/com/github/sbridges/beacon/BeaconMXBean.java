@@ -20,5 +20,15 @@ public interface BeaconMXBean {
      */
     public void updateConf(String newConf);
     
+    /**
+     * @return how many jfr events have we received from our RecordingStream 
+     */
+    public long getEvents();
+    
+    /**
+     * @return how many jfr flushes have we received from our RecordingStream 
+     */
+    public long getFlushes();
+    
     
 }

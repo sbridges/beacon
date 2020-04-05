@@ -201,4 +201,14 @@ public final class Beacon implements BeaconMXBean {
         }
         
     }
+
+    @Override
+    public long getEvents() {
+        return eventWatcher.getEvents();
+    }
+
+    @Override
+    public long getFlushes() {
+        return eventWatcher.getFlushes();
+    }
 }
