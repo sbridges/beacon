@@ -34,15 +34,12 @@ public class TestEventFactory {
                         rs.enable(TestEvent.TEST_EVENT)
                         .withoutThreshold();
                         rs.onEvent(TestEvent.TEST_EVENT, e -> {
-                            System.out.print("queued");
                             queue.add(e);
                         });
                         
                         rs.setOrdered(true);
                         rs.setMaxSize(1_000_000);
                         rs.start();
-                        
-                        System.out.print("done");
                     }
             });
             
