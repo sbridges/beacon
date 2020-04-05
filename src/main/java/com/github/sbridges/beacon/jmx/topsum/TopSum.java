@@ -14,7 +14,6 @@ import com.github.sbridges.beacon.internal.FirstException;
 import com.github.sbridges.beacon.internal.RecordedEventsUtil;
 import com.github.sbridges.beacon.internal.TopIntermediateResults;
 import com.github.sbridges.beacon.jmx.top.TopConfig;
-
 import jdk.jfr.consumer.RecordedEvent;
 
 /**
@@ -92,16 +91,21 @@ public final class TopSum implements RecordedEventListener, TopSumMXBean{
     @Override
     public String[] getStatsReport() {
 
+        TopSumStatMBean[] reportOn = lastResults;
+        int length = Arrays.stream(reportOn).mapToInt(t -> t.getKey().length()).max().orElse(20);
+        length = Math.max(length, 20);
+        length = Math.min(length, 512);
+        
         List<String> results = new ArrayList<>();
 
         String key = conf.getKeyFields().stream().collect(Collectors.joining(" "));
         results.add(
-                String.format("%-20s %-20s %-20s %-20s", key, conf.getValueField(), "invocations", "duration (ms)"));
+                String.format("%-" + length + "s %-20s %-20s %-20s", key, conf.getValueField(), "invocations", "duration (ms)"));
 
-        results.add("-------------------- ".repeat(4));
-        for(TopSumStatMBean bean : lastResults) {
+        results.add("-".repeat(length) + " " + ("-------------------- ".repeat(3)));
+        for(TopSumStatMBean bean : reportOn) {
             results.add(
-                   String.format("%-20s %20.0f %20d %20d", 
+                   String.format("%-" + length + "s %20.0f %20d %20d", 
                            bean.getKey(), 
                            bean.getValue(), 
                            bean.events(), 

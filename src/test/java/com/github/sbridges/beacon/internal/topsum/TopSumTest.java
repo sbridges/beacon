@@ -91,4 +91,34 @@ public class TopSumTest {
         
         assertEquals(0, top.getStats().length);
     }
+    
+    
+    @Test
+    public void testTopLongKey() throws Exception {
+        
+        List<RecordedEvent> eventsLocal = TestEventFactory.createRecordedEvents(
+                t -> {t.aLong = 1; t.aString = "averyveryverywellnotsoverylongstring";});
+        
+                
+                
+        TopSum top = new TopSum(
+                new TopConfig(Arrays.asList("aString"), "aLong", Duration.of(1, ChronoUnit.SECONDS)),
+                clock);
+        
+        top.flush();
+        for(RecordedEvent e : eventsLocal) {
+            top.hear(e);
+        }
+        
+        clock.advanceMillis(1000);
+        top.flush();
+        
+        assertEquals(
+                
+      "aString                              aLong                invocations          duration (ms)       \n" + 
+      "------------------------------------ -------------------- -------------------- -------------------- \n" + 
+      "averyveryverywellnotsoverylongstring                    1                    1                    0",
+                Stream.of(top.getStatsReport()).collect(Collectors.joining("\n")));
+        
+    }
 }

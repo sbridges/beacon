@@ -96,15 +96,20 @@ public final class Top implements TopMXBean, RecordedEventListener {
     @Override
     public String[] getStatsReport() {
 
+        TopStatMBean[] reportOn = lastResults;
+        int length = Arrays.stream(reportOn).mapToInt(t -> t.getKey().length()).max().orElse(20);
+        length = Math.max(length, 20);
+        length = Math.min(length, 512);
+        
         List<String> results = new ArrayList<>();
         String key = conf.getKeyFields().stream().collect(Collectors.joining(" "));
         results.add(
-                String.format("%-40s %-20s", key, conf.getValueField()));
+                String.format("%-" + length + "s %-20s", key, conf.getValueField()));
 
-        results.add("---------------------------------------- --------------------");
-        for(TopStatMBean bean : lastResults) {
+        results.add("-".repeat(length) + " --------------------");
+        for(TopStatMBean bean : reportOn) {
             results.add(
-                   String.format("%-40s %20.0f", 
+                   String.format("%-" + length + "s %20.0f", 
                            bean.getKey(), 
                            bean.getValue()
                            )

@@ -70,11 +70,11 @@ public class TopTest {
         assertEquals(1.0, top.getStats()[2].getValue(), 0);
         
         assertEquals(
-                "aString                                  aLong               \n" + 
-                "---------------------------------------- --------------------\n" + 
-                "c                                                           3\n" + 
-                "b                                                           2\n" + 
-                "a                                                           1", 
+                "aString              aLong               \n" + 
+                "-------------------- --------------------\n" + 
+                "c                                       3\n" + 
+                "b                                       2\n" + 
+                "a                                       1", 
                 Stream.of(top.getStatsReport()).collect(Collectors.joining("\n")));
         
         //no more events
@@ -82,6 +82,31 @@ public class TopTest {
         top.flush();
         
         assertEquals(0, top.getStats().length);
+    }
+    
+    @Test
+    public void testTopLongKey() throws Exception {
+        
+        List<RecordedEvent> eventsLocal = TestEventFactory.createRecordedEvents(
+                t -> {t.aLong = 1; t.aString = "averyveryverywellnotsoverylongstring";});
+        
+        
+        Top top = new Top(
+                new TopConfig(Arrays.asList("aString"), "aLong", Duration.of(1, ChronoUnit.SECONDS)),
+                clock);
+        
+        top.flush();
+        top.hear(eventsLocal.get(0));
+        
+        clock.advanceMillis(1000);
+        top.flush();
+        
+        assertEquals(
+                "aString                              aLong               \n" + 
+                "------------------------------------ --------------------\n" + 
+                "averyveryverywellnotsoverylongstring                    1", 
+                Stream.of(top.getStatsReport()).collect(Collectors.joining("\n")));
+        
     }
     
     
