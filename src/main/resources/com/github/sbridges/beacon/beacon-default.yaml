@@ -14,7 +14,7 @@ events :
    - eventName : jdk.ObjectAllocationOutsideTLAB
    - eventName : jdk.ObjectAllocationInNewTLAB
 objects :
-   - objectName : com.github.sbridges.beacon:event=AllocationRate
+   - objectName : com.github.sbridges.beacon:event=aggregate.AllocationRate,field=size
      objectType : rate
      rateConfig :
        sum : true
@@ -28,6 +28,37 @@ objects :
      values :
        - event : jdk.ExceptionStatistics
          field : throwables
+   - objectName : com.github.sbridges.beacon:event=aggregate.SocketReadWrite,by=rate
+     objectType : rate
+     rateConfig :
+       sum : true
+     values:
+       - event : jdk.SocketWrite
+         field : bytesWritten
+       - event : jdk.SocketRead
+         field : bytesRead
+   - objectName : com.github.sbridges.beacon:event=aggregate.SocketReadWrite,by=byHostPort
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.SocketWrite
+         keyFields : [host, port]
+         valueField : bytesWritten
+       - event : jdk.SocketRead
+         keyFields : [host, port]
+         valueField : bytesRead
+   - objectName : com.github.sbridges.beacon:event=aggregate.SocketReadWrite,by=byHost
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.SocketWrite
+         keyFields : [host]
+         valueField  : bytesWritten
+       - event : jdk.SocketRead
+         keyFields : [host]
+         valueField  : bytesRead
    - objectName : com.github.sbridges.beacon:event=jdk.SocketRead,by=rate
      objectType : rate
      rateConfig :
@@ -57,24 +88,24 @@ objects :
        period : {seconds : 5}
        sum : true
      values :
-       - event : jdk.SocketRead
-         field : bytesRead
+       - event : jdk.SocketWrite
+         field : bytesWritten
    - objectName : com.github.sbridges.beacon:event=jdk.SocketWrite,by=byHostPort
      objectType : topSum
      topConfig :
        period : {seconds : 5}
      keyValues :
-       - event : jdk.SocketRead
+       - event : jdk.SocketWrite
          keyFields : [host, port]
-         valueField : bytesRead
+         valueField : bytesWritten
    - objectName : com.github.sbridges.beacon:event=jdk.SocketWrite,by=byHost
      objectType : topSum
      topConfig :
        period : {seconds : 5}
      keyValues :
-       - event : jdk.SocketRead
+       - event : jdk.SocketWrite
          keyFields : [host]
-         valueField : bytesRead
+         valueField : bytesWritten
    - objectName : com.github.sbridges.beacon:event=jdk.FileRead,by=rate
      objectType : rate
      rateConfig :
