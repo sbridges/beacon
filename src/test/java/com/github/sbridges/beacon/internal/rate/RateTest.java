@@ -24,20 +24,12 @@ public class RateTest {
     StubClock clock = new StubClock(); 
     long now = clock.millis();
     
-    @BeforeClass
-    public static void createEvents() {
-        events = TestEventFactory.createRecordedEvents(
-                t -> t.aLong = 1,
-                t -> t.aLong = 2,
-                t -> t.aLong = 3
-                );
-    }
-    
+
     
     @Test
     public void testEmpty() {
         
-        Rate rate = new Rate(new RateConfig("aLong", false, Duration.of(1, ChronoUnit.SECONDS)), clock);
+        Rate rate = new Rate(new RateConfig(false, Duration.of(1, ChronoUnit.SECONDS)), clock);
         rate.flush();
         assertEquals(0, rate.getRatePerSecond(), 0);
         assertEquals(0, rate.getTotal(), 0);
@@ -46,12 +38,12 @@ public class RateTest {
     @Test
     public void testNonSum() {
         
-        Rate rate = new Rate(new RateConfig("aLong", false, Duration.of(1, ChronoUnit.SECONDS)), clock);
+        Rate rate = new Rate(new RateConfig(false, Duration.of(1, ChronoUnit.SECONDS)), clock);
         
         //last value is 1
         //we don'thave enough info to calculate rate though on the 
         //first flush, so rate remains 0
-        rate.hear(events.get(0));
+        rate.hear(1);
         rate.flush();
         
         assertEquals(0, rate.getRatePerSecond(), 0);
@@ -59,7 +51,7 @@ public class RateTest {
 
         
         //last value is now 2, delta is 1
-        rate.hear(events.get(1));
+        rate.hear(2);
         clock.advanceMillis(1000);
         rate.flush();
         
@@ -77,19 +69,19 @@ public class RateTest {
     @Test
     public void testFlushBeforeTime() {
         
-        Rate rate = new Rate(new RateConfig("aLong", false, Duration.of(1, ChronoUnit.SECONDS)), clock);
+        Rate rate = new Rate(new RateConfig(false, Duration.of(1, ChronoUnit.SECONDS)), clock);
         
         //last value is 1
         //we don'thave enough info to calculate rate though on the 
         //first flush, so rate remains 0
-        rate.hear(events.get(0));
+        rate.hear(1);
         rate.flush();
         
         assertEquals(0, rate.getRatePerSecond(), 0);
         assertEquals(1, rate.getTotal(), 0);
 
         
-        rate.hear(events.get(1));
+        rate.hear(2);
         clock.advanceMillis(500);
         rate.flush();
 
@@ -110,12 +102,12 @@ public class RateTest {
     @Test
     public void testSum() {
         
-        Rate rate = new Rate(new RateConfig("aLong", true, Duration.of(1, ChronoUnit.SECONDS)), clock);
+        Rate rate = new Rate(new RateConfig(true, Duration.of(1, ChronoUnit.SECONDS)), clock);
 
         //last value is 1
         //we don'thave enough info to calculate rate though on the 
         //first flush, so rate remains 0
-        rate.hear(events.get(0));
+        rate.hear(1);
         rate.flush();
         
         assertEquals(0, rate.getRatePerSecond(), 0);
@@ -123,8 +115,8 @@ public class RateTest {
 
         
         //last value is now 6, delta is 5
-        rate.hear(events.get(1));
-        rate.hear(events.get(2));
+        rate.hear(2);
+        rate.hear(3);
         clock.advanceMillis(1000);
         rate.flush();
         

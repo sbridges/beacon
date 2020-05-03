@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,28 +22,34 @@ import jdk.jfr.consumer.RecordedEvent;
 
 public class TopSumTest {
 
-    static List<RecordedEvent> events; 
-    
-    StubClock clock = new StubClock(); 
+    StubClock clock = new StubClock();
     long now = clock.millis();
     
-    @BeforeClass
-    public static void createEvents() {
-        events = TestEventFactory.createRecordedEvents(
-                t -> {t.aLong = 1; t.aString = "a";},
-                t -> {t.aLong = 1; t.aString = "a";},
-                t -> {t.aLong = 2; t.aString = "b";},
-                t -> {t.aLong = 2; t.aString = "b";},
-                t -> {t.aLong = 3; t.aString = "c";},
-                t -> {t.aLong = 3; t.aString = "c";}
-                
-                );
+    class Data  {
+
+        final long val;
+        final String key;
+
+        public Data(long val, String key) {
+            this.val = val;
+            this.key = key;
+        }
     }
+
+    List<Data> events = Arrays.asList(
+            new Data(1, "a"),
+            new Data(1, "a"),
+            new Data(2, "b"),
+            new Data(2, "b"),
+            new Data(3, "c"),
+            new Data(3, "c")
+
+    );
     
     @Test
     public void testEmpty() throws Exception {
         TopSum top = new TopSum(
-                new TopConfig(Arrays.asList("aString"), "aLong", Duration.of(1, ChronoUnit.SECONDS)),
+                new TopConfig(Duration.of(1, ChronoUnit.SECONDS)),
                 clock);
         
         assertEquals(0, top.getStats().length);
@@ -53,12 +60,12 @@ public class TopSumTest {
     @Test
     public void testTop() throws Exception {
         TopSum top = new TopSum(
-                new TopConfig(Arrays.asList("aString"), "aLong", Duration.of(1, ChronoUnit.SECONDS)),
+                new TopConfig(Duration.of(1, ChronoUnit.SECONDS)),
                 clock);
         
         top.flush();
-        for(RecordedEvent e : events) {
-            top.hear(e);
+        for(Data e : events) {
+            top.hear(e.key, e.val, Duration.of(0, ChronoUnit.HOURS));
         }
                 
         
@@ -78,11 +85,11 @@ public class TopSumTest {
         assertEquals(2, top.getStats()[2].events());
         
         assertEquals(
-                "aString              aLong                invocations          duration (ms)       \n" + 
-                "-------------------- -------------------- -------------------- -------------------- \n" + 
-                "c                                       6                    2                    0\n" + 
-                "b                                       4                    2                    0\n" + 
-                "a                                       2                    2                    0", 
+                "key                  value                invocations          duration (ms)       \n" +
+                        "-------------------- -------------------- -------------------- -------------------- \n" +
+                        "c                                       6                    2                    0\n" +
+                        "b                                       4                    2                    0\n" +
+                        "a                                       2                    2                    0",
                 Stream.of(top.getStatsReport()).collect(Collectors.joining("\n")));
         
         //no more events
@@ -96,28 +103,23 @@ public class TopSumTest {
     @Test
     public void testTopLongKey() throws Exception {
         
-        List<RecordedEvent> eventsLocal = TestEventFactory.createRecordedEvents(
-                t -> {t.aLong = 1; t.aString = "averyveryverywellnotsoverylongstring";});
-        
-                
-                
         TopSum top = new TopSum(
-                new TopConfig(Arrays.asList("aString"), "aLong", Duration.of(1, ChronoUnit.SECONDS)),
+                new TopConfig(Duration.of(1, ChronoUnit.SECONDS)),
                 clock);
         
         top.flush();
-        for(RecordedEvent e : eventsLocal) {
-            top.hear(e);
-        }
+
+        top.hear("averyveryverywellnotsoverylongstring", 1, Duration.of(0, ChronoUnit.HOURS));
+
         
         clock.advanceMillis(1000);
         top.flush();
         
         assertEquals(
                 
-      "aString                              aLong                invocations          duration (ms)       \n" + 
-      "------------------------------------ -------------------- -------------------- -------------------- \n" + 
-      "averyveryverywellnotsoverylongstring                    1                    1                    0",
+      "key                                  value                invocations          duration (ms)       \n" +
+              "------------------------------------ -------------------- -------------------- -------------------- \n" +
+              "averyveryverywellnotsoverylongstring                    1                    1                    0",
                 Stream.of(top.getStatsReport()).collect(Collectors.joining("\n")));
         
     }

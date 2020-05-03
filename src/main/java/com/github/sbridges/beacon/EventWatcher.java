@@ -1,29 +1,36 @@
 package com.github.sbridges.beacon;
 
+import com.github.sbridges.beacon.internal.Util;
+import jdk.jfr.EventSettings;
+import jdk.jfr.FlightRecorder;
+import jdk.jfr.consumer.RecordingStream;
+
+import javax.management.MBeanServer;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import javax.management.MBeanServer;
-
-import jdk.jfr.EventSettings;
-import jdk.jfr.FlightRecorder;
-import jdk.jfr.consumer.RecordingStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Records jfr events and exposes them over jmx. 
  */
 public final class EventWatcher {
 
+    private static final Logger log = Logger.getLogger(EventWatcher.class.getName());
+
     private final List<Bean> coolBeans;
+    private final List<EventConfig> events;
+
     private volatile boolean running = true;
     private final CountDownLatch started = new CountDownLatch(1);
-    private long events;
+    private long recordedEvents;
     private long flushes;
     
     static {
@@ -43,12 +50,11 @@ public final class EventWatcher {
             fe.begin();
             fe.commit();
         }, 1, 1, TimeUnit.SECONDS);
-        
-        
     }
     
-    public EventWatcher(List<Bean> coolBeans) {
-        this.coolBeans = coolBeans; 
+    public EventWatcher(List<Bean> coolBeans, List<EventConfig> events) {
+        this.events = Util.immutableCopyOf(events);
+        this.coolBeans = Util.immutableCopyOf(coolBeans);
     }
 
     public void start() {
@@ -86,60 +92,47 @@ public final class EventWatcher {
 
         try(var rs = new RecordingStream()) {
             rs.setMaxAge(Duration.of(15, ChronoUnit.MINUTES));
-            List<String> events = coolBeans.stream()
-                    .map(t -> t.getEventName())
-                    .distinct()
-                    .collect(Collectors.toList());
-            
-            for(String event : events) {
-                EventSettings settings = rs.enable(event);
-                
-                //use the lowest period
-                coolBeans.stream()
-                    .map(t -> t.getEventPeriod())
-                    .flatMap(t -> t.stream())
-                    .sorted()
-                    .findFirst()
-                    .ifPresent(t -> settings.withPeriod(t));
-                    
-                //use the lowest duration
-                coolBeans.stream()
-                    .map(t -> t.getEventThreshold())
-                    .flatMap(t -> t.stream())
-                    .sorted()
-                    .findFirst()
-                    .ifPresent(t -> settings.withThreshold(t));
-                coolBeans.stream()
-                    .map(t -> t. getStackTrace())
-                    .filter(t -> t)
-                    .map(__ -> settings.withStackTrace());
+
+            for(EventConfig conf : events) {
+                EventSettings settings = rs.enable(conf.getEventName());
+                conf.getEventPeriod().ifPresent(t -> settings.withPeriod(t));
+                conf.getEventThreshold().ifPresent(t -> settings.withThreshold(t));
+                if(conf.getStackTrace()) {
+                    settings.withStackTrace();
+                } else {
+                    settings.withoutStackTrace();
+                }
             }
-            
+
             for(Bean b : coolBeans) {
                 MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
                 try {
                     mbs.registerMBean(
-                            b.getListener(), 
+                            b.getMxBean(),
                             b.getObjectName());
                 } catch(Exception e) {
                     throw new IllegalStateException(e);
                 }
-                rs.onEvent(b.getEventName(), e -> {
-                    try {
-                        b.getListener().hear(e);
-                    } catch(Exception ex) {
-                        ex.printStackTrace();
-                    }
-                    });
+
+                b.getListeners().forEach((name, consumer) -> {
+                    rs.onEvent(name, t -> {
+                                try {
+                                    consumer.accept(t);
+                                } catch (Exception e) {
+                                    log.log(Level.WARNING, e.getMessage(), e);
+                                }
+                            }
+                    );
+                });
             }
             
             rs.onEvent(__ -> {
-                this.events++;
+                this.recordedEvents++;
             });
 
             rs.onError(t -> {
                 if(running) {
-                    System.err.println(t);
+                    log.log(Level.WARNING, t.getMessage(), t);
                 }
             });
             
@@ -161,25 +154,24 @@ public final class EventWatcher {
             started.countDown();
             rs.start();
         }
-        
     }
 
     private void flush(RecordingStream rs) {
         this.flushes++;
         try {
             for(Bean b : coolBeans) {
-                b.getListener().flush();
+                b.getMxBean().flush();
             }
         } catch(Exception e) {
-            e.printStackTrace();
+            log.log(Level.WARNING, e.getMessage(), e);
         }
         if(!running) {
             rs.close();
         }
     }
     
-    public long getEvents() {
-        return events;
+    public long getRecordedEvents() {
+        return recordedEvents;
     }
 
     public long getFlushes() {

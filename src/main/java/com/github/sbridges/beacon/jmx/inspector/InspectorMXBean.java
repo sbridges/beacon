@@ -28,4 +28,10 @@ public interface InspectorMXBean {
      * @return all collected JFR events as a String[], or null if no event has occurred.
      */
     String[] getAllEventsNotSplit();
+
+    /**
+     * @return a description of the first failure to for this JMX bean
+     * or null if no failures occurred.
+     */
+    String[] getFirstException() throws IOException;
 }

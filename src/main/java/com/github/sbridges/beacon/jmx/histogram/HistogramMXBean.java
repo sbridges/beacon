@@ -1,4 +1,4 @@
-package com.github.sbridges.beacon.histogram;
+package com.github.sbridges.beacon.jmx.histogram;
 
 import java.io.IOException;
 

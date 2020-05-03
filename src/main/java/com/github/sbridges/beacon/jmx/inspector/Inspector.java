@@ -6,7 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import com.github.sbridges.beacon.RecordedEventListener;
+import com.github.sbridges.beacon.internal.FirstException;
+import com.github.sbridges.beacon.listeners.RecordedEventListener;
 
 import jdk.jfr.consumer.RecordedEvent;
 
@@ -18,7 +19,8 @@ public final class Inspector implements RecordedEventListener, InspectorMXBean {
     private final Object lock = new Object();
     private final ArrayDeque<String> elements;
     private final int size;
-    
+    private final FirstException firstException = new FirstException();
+
     public Inspector(InspectorConfig config) {
         this.size = config.getSize();
         this.elements = new ArrayDeque<>(size);
@@ -103,13 +105,17 @@ public final class Inspector implements RecordedEventListener, InspectorMXBean {
     public int getSize() {
         return size;
     }
-    
-    
 
 
+    @Override
+    public void hearException(Exception e) {
+        firstException.hear(e);
+    }
 
-    
-    
+    @Override
+    public String[] getFirstException() {
+        return firstException.get();
+    }
     
     
 }

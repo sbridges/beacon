@@ -1,20 +1,18 @@
-package com.github.sbridges.beacon.histogram;
+package com.github.sbridges.beacon.jmx.histogram;
 
 import java.time.Clock;
-import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
+import com.github.sbridges.beacon.listeners.DoubleValueListener;
 import org.HdrHistogram.DoubleHistogram;
 
-import com.github.sbridges.beacon.RecordedEventListener;
 import com.github.sbridges.beacon.internal.FirstException;
-
-import jdk.jfr.consumer.RecordedEvent;
 
 /**
  * Implementation of {@link HistogramMXBean} 
  */
-public final class Histogram implements HistogramMXBean, RecordedEventListener {
+public final class Histogram implements HistogramMXBean, DoubleValueListener {
 
     private static class Stats {
         private long events;
@@ -33,24 +31,20 @@ public final class Histogram implements HistogramMXBean, RecordedEventListener {
     private final DoubleHistogram allTimeHistogram;
     private final DoubleHistogram lastMinuteHistogram;
     private long lastFlushTime;
-    private final String eventField;   
     private final FirstException firstException = new FirstException();
     
     volatile Stats allTimeStats = new Stats();
     volatile Stats lastMinuteStats = new Stats();
-    
-    
-    public Histogram(HistogramConfig config, Clock clock) {
-        this.eventField = config.getEventField();
+
+
+    public Histogram(Clock clock) {
         this.clock = clock;
         this.allTimeHistogram = new DoubleHistogram(3);
         this.lastMinuteHistogram = new DoubleHistogram(3);
     }
     
-    @Override
-    public void hear(RecordedEvent e) {
+    public void hear(double value) {
         try {
-            double value = e.getDouble(eventField);
             allTimeHistogram.recordValue(value);
             lastMinuteHistogram.recordValue(value);
         } catch(RuntimeException re) {
@@ -90,8 +84,12 @@ public final class Histogram implements HistogramMXBean, RecordedEventListener {
         //write to establish a happens before for readers of the stats
         this.allTimeStats = allTimStats;
     }
-    
-    
+
+    @Override
+    public void hearException(Exception e) {
+        firstException.hear(e);
+    }
+
 
     @Override
     public String[] getFirstException() {
@@ -178,35 +176,10 @@ public final class Histogram implements HistogramMXBean, RecordedEventListener {
     public long getLastMinuteEvents() {
         return lastMinuteStats.events;
     }
-    
-    @Override
-    public int hashCode() {
-        return Objects.hash(eventField);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        Histogram other = (Histogram) obj;
-        return Objects.equals(eventField, other.eventField);
-    }
 
     @Override
     public String toString() {
-        return "Histogram [eventField=" + eventField + "]";
+        return new StringJoiner(", ", Histogram.class.getSimpleName() + "[", "]")
+                .toString();
     }
-
-    public String getEventField() {
-        return eventField;
-    }
-    
-    
 }

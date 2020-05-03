@@ -1,8 +1,13 @@
 package com.github.sbridges.beacon;
 
-import java.time.Duration;
-import java.util.Objects;
-import java.util.Optional;
+
+import com.github.sbridges.beacon.listeners.*;
+import jdk.jfr.consumer.RecordedEvent;
+
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -13,99 +18,155 @@ import javax.management.ObjectName;
 public final class Bean {
     
     private final ObjectName objectName;
-    private final String obectType;
-    private final String eventName;
-    //NOTE EventListener is also an MXBean
-    private final RecordedEventListener listener;
-    private final Optional<Duration> eventThreshold;
-    private final Optional<Duration> eventPeriod;
-    private final boolean stackTrace;
-   
-    public Bean(String objectName, 
-            String obectType, 
-            String eventName,
-            Optional<Duration> eventPeriod, 
-            Optional<Duration> eventThreshold, 
-            boolean stackTrace,
-            RecordedEventListener listener) {
+    private final Flushable mxBean;
+    private final Map<String, Consumer<RecordedEvent>> listeners;
+
+    public static Bean newValueListenerBean(String objectName, DoubleValueListener bean, List<EventField> eventFields) {
+        Map<String, Consumer<RecordedEvent>> listeners = eventFields.stream().collect(
+                Collectors.toMap(
+                        t -> t.getEvent(),
+                        t -> {
+                            return event -> {
+                                try {
+                                    bean.hear(event.getDouble(t.getField()));
+                                } catch (RuntimeException re) {
+                                    bean.hearException(re);
+                                }
+                            };
+                        }
+                        )
+                );
+        return new Bean(objectName, bean, listeners);
+    }
+
+    public static Bean newEventListenerBean(String objectName, RecordedEventListener bean, List<String> events) {
+        Map<String, Consumer<RecordedEvent>> listeners = events.stream().collect(
+                Collectors.toMap(
+                        t -> t,
+                        t -> {
+                            return event -> {
+                                try {
+                                    bean.hear(event);
+                                } catch (RuntimeException re) {
+                                    bean.hearException(re);
+                                }
+                            };
+                        }
+                )
+        );
+        return new Bean(objectName, bean, listeners);
+    }
+
+    public static Bean newKeyValueListenerBean(String objectName, KeyValueListener bean, List<EventFieldKey> events) {
+
+        Map<String, Consumer<RecordedEvent>> listeners = events.stream().collect(
+                Collectors.toMap(
+                        t -> t.getEvent(),
+                        t -> {
+                            return getKeyValueConsumer(bean, t);
+                        }
+                )
+        );
+        return new Bean(objectName, bean, listeners);
+    }
+
+    public static Bean newKeyValueDurationBean(String objectName, KeyValueDurationListener bean, List<EventFieldKey> events) {
+
+        Map<String, Consumer<RecordedEvent>> listeners = events.stream().collect(
+                Collectors.toMap(
+                        t -> t.getEvent(),
+                        t -> {
+                            return getKeyValueDurationConsumer(bean, t);
+                        }
+                )
+        );
+        return new Bean(objectName, bean, listeners);
+    }
+
+    private static Consumer<RecordedEvent> getKeyValueConsumer(KeyValueListener bean, EventFieldKey t) {
+        return new Consumer<RecordedEvent>() {
+            //cache the key extractor
+            private Function<RecordedEvent, String> keyExtractor;
+
+            @Override
+            public void accept(RecordedEvent event) {
+                if(keyExtractor == null) {
+                    keyExtractor = KeyExtractorUtil.makeKeyExtractor(event, t.getKeys());
+                }
+                bean.hear(
+                        keyExtractor.apply(event),
+                        event.getDouble(t.getField())
+                );
+            }
+        };
+    }
+
+    private static Consumer<RecordedEvent> getKeyValueDurationConsumer(KeyValueDurationListener bean, EventFieldKey t) {
+        return new Consumer<RecordedEvent>() {
+            //cache the key extractor
+            private Function<RecordedEvent, String> keyExtractor;
+
+            @Override
+            public void accept(RecordedEvent event) {
+                if(keyExtractor == null) {
+                    keyExtractor = KeyExtractorUtil.makeKeyExtractor(event, t.getKeys());
+                }
+                bean.hear(
+                        keyExtractor.apply(event),
+                        event.getDouble(t.getField()),
+                        event.getDuration()
+                );
+            }
+        };
+    }
+
+    public Bean(String objectName, Flushable mxBean, Map<String, Consumer<RecordedEvent>> listeners) {
         try {
             this.objectName = new ObjectName(objectName);
         } catch (MalformedObjectNameException e) {
             throw new IllegalArgumentException("invalid objectName:" + objectName, e);
         }
-        this.obectType = obectType;
-        this.eventName = eventName;
-        this.listener = listener;
-        this.eventPeriod = eventPeriod;
-        this.eventThreshold = eventThreshold;
-        this.stackTrace = stackTrace;
+        this.mxBean = mxBean;
+        this.listeners = Collections.unmodifiableMap(new HashMap<>(listeners));
     }
 
     public ObjectName getObjectName() {
         return objectName;
     }
 
-    public String getObectType() {
-        return obectType;
+    public Map<String, Consumer<RecordedEvent>> getListeners() {
+        return listeners;
     }
 
-    public String getEventName() {
-        return eventName;
-    }
-
-    public RecordedEventListener getListener() {
-        return listener;
-    }
-
-    public Optional<Duration> getEventThreshold() {
-        return eventThreshold;
-    }
-
-    public Optional<Duration> getEventPeriod() {
-        return eventPeriod;
-    }
-    
-    public boolean getStackTrace() {
-        return stackTrace;
+    public Flushable getMxBean() {
+        return mxBean;
     }
 
     @Override
-    public String toString() {
-        return "Bean [objectName=" + objectName + ", obectType=" + obectType
-                + ", eventName=" + eventName + ", listener=" + listener
-                + ", eventThreshold=" + eventThreshold + ", eventPeriod="
-                + eventPeriod + ", stackTrace=" + stackTrace + "]";
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Bean bean = (Bean) o;
+        return Objects.equals(objectName, bean.objectName) &&
+                Objects.equals(mxBean, bean.mxBean) &&
+                Objects.equals(listeners, bean.listeners);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(eventName, eventPeriod, eventThreshold, listener,
-                obectType, objectName, stackTrace);
+        return Objects.hash(objectName, mxBean, listeners);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        Bean other = (Bean) obj;
-        return Objects.equals(eventName, other.eventName)
-                && Objects.equals(eventPeriod, other.eventPeriod)
-                && Objects.equals(eventThreshold, other.eventThreshold)
-                && Objects.equals(listener, other.listener)
-                && Objects.equals(obectType, other.obectType)
-                && Objects.equals(objectName, other.objectName)
-                && stackTrace == other.stackTrace;
+    public String toString() {
+        return new StringJoiner(", ", Bean.class.getSimpleName() + "[", "]")
+                .add("objectName=" + objectName)
+                .add("mxBean=" + mxBean)
+                .add("listeners=" + listeners)
+                .toString();
     }
 
-   
-    
-    
-    
+
 }
+
+

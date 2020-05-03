@@ -1,5 +1,8 @@
 package com.github.sbridges.beacon;
 
+import com.github.sbridges.beacon.internal.Util;
+import jdk.jfr.Event;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +32,7 @@ public final class Beacon implements BeaconMXBean {
 
     private final Object lock = new Object();
     private final List<Bean> beans;
+    private final List<EventConfig> events;
     private EventWatcher eventWatcher;
     private String conf;
     
@@ -94,15 +98,19 @@ public final class Beacon implements BeaconMXBean {
      * @param conf  a yaml file describing the jfr events to listen to, and how to expose them to jmx.
      */
     public Beacon(String conf) {
+        this(conf, new ConfigParser().parse(conf));
+    }
+    
+    public Beacon(List<Bean> beans, List<EventConfig> events) {
+        this(null, new Config(beans, events));
+    }
+
+    private Beacon(String conf, Config config) {
         this.conf = conf;
-        this.beans = new ConfigParser().parse(conf);
+        this.beans = Util.immutableCopyOf(config.getBeans());
+        this.events = Util.immutableCopyOf(config.getEvents());
     }
-    
-    public Beacon(List<Bean> beans) {
-        this.conf = null;
-        this.beans = List.copyOf(beans);
-    }
-    
+
     /**
      * Start exposing JFR events over jmx.  This will start a background daemon thread.<P>  
      * 
@@ -128,7 +136,7 @@ public final class Beacon implements BeaconMXBean {
             catch(Exception e) {
                 throw new IllegalStateException(e);
             }
-            this.eventWatcher = new EventWatcher(beans);
+            this.eventWatcher = new EventWatcher(beans, events);
             this.eventWatcher.start();
         }
     }
@@ -203,8 +211,8 @@ public final class Beacon implements BeaconMXBean {
     }
 
     @Override
-    public long getEvents() {
-        return eventWatcher.getEvents();
+    public long getRecordedEvents() {
+        return eventWatcher.getRecordedEvents();
     }
 
     @Override

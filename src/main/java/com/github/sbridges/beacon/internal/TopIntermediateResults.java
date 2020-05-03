@@ -6,15 +6,15 @@ public final class TopIntermediateResults {
 
     private double value;
     private int events;
-    private  long totalDuration;
+    private  long totalDurationNanos;
     
     public TopIntermediateResults() {
         
     }
     
-    public void add(double addToValue, long duration) {
+    public void add(double addToValue, long durationNanos) {
         value += addToValue;
-        totalDuration += duration;
+        totalDurationNanos += durationNanos;
         events++;
     }
     
@@ -23,17 +23,14 @@ public final class TopIntermediateResults {
     }
     
     public TopSumStat complete(String key) {
-        return new TopSumStat(key, value, events, totalDuration);
+        return new TopSumStat(key, value, events, totalDurationNanos);
     }
 
     @Override
     public String toString() {
         return "TopIntermediateResults [value=" + value + ", events="
-                + events + ", totalDuration=" + totalDuration + "]";
+                + events + ", totalDurationNanos=" + totalDurationNanos + "]";
     }
 
-
- 
-    
     
 }

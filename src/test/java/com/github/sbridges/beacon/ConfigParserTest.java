@@ -6,10 +6,12 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import com.github.sbridges.beacon.histogram.Histogram;
+import com.github.sbridges.beacon.jmx.histogram.Histogram;
 import com.github.sbridges.beacon.jmx.gauge.Gauge;
 import com.github.sbridges.beacon.jmx.inspector.Inspector;
 import com.github.sbridges.beacon.jmx.rate.Rate;
@@ -21,244 +23,247 @@ public class ConfigParserTest {
 
     @Test
     public void testParseEmpty() {
-        List<Bean> beans = new ConfigParser().parse("events : []");
-        assertTrue(beans.isEmpty());
-    }
-    
-    @Test
-    public void testParseEmptyObjects() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
-                "events :\n" + 
-                "   - eventName : jdk.CPULoad\n" + 
-                "     eventPeriod : {seconds : 5}\n" + 
-                "     objects : []" 
-                );
-        assertTrue(beans.isEmpty());
+        Config conf = new ConfigParser().parse("events : []\n" +
+                "objects : []\n");
+        assertTrue(conf.getEvents().isEmpty());
+        assertTrue(conf.getBeans().isEmpty());
     }
 
     @Test
-    public void testParseBean() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
-                "events :\n" + 
-                "   - eventName : jdk.CPULoad\n" + 
-                "     eventPeriod : {seconds : 20}\n" +
-                "     eventThreshold : {minutes : 20}\n" +
-                "     stackTrace: true \n" +
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.CpuLoad,field=machineTotal\n" + 
-                "         objectType : gauge\n" + 
-                "         gaugeConfig : \n" + 
-                "           eventField : machineTotal\n" 
+    public void testParseEventDefaults() throws Exception {
+        Config conf = new ConfigParser().parse(
+                "events :\n" +
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects : []\n"
                 );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        assertEquals(true, b1.getStackTrace());
-        assertEquals(Duration.of(20, ChronoUnit.SECONDS), b1.getEventPeriod().get());
-        assertEquals(Duration.of(20, ChronoUnit.MINUTES), b1.getEventThreshold().get());
+
+        assertEquals(1, conf.getEvents().size());
+        EventConfig eventConf = conf.getEvents().get(0);
+        assertEquals(eventConf.getEventName(), "jdk.ExceptionStatistics");
+        assertEquals(eventConf.getEventPeriod(), Optional.empty());
+        assertEquals(eventConf.getEventThreshold(), Optional.empty());
+        assertEquals(eventConf.getStackTrace(), false);
+
+        assertTrue(conf.getBeans().isEmpty());
+
     }
-    
+
     @Test
-    public void testParseBeanDefaults() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
-                "events :\n" + 
-                "   - eventName : jdk.CPULoad\n" + 
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.CpuLoad,field=machineTotal\n" + 
-                "         objectType : gauge\n" + 
-                "         gaugeConfig : \n" + 
-                "           eventField : machineTotal\n" 
-                );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        assertFalse(b1.getStackTrace());
-        assertFalse(b1.getEventPeriod().isPresent());
-        assertFalse(b1.getEventThreshold().isPresent());
-        
+    public void testParseEventD() throws Exception {
+        Config conf = new ConfigParser().parse(
+                "events :\n" +
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "       eventPeriod : {seconds : 10}\n" +
+                        "       eventThreshold : {seconds : 12}\n" +
+                        "       stackTrace : true\n" +
+                        "objects : []\n"
+
+        );
+
+        assertEquals(1, conf.getEvents().size());
+        EventConfig eventConf = conf.getEvents().get(0);
+        assertEquals(eventConf.getEventName(), "jdk.ExceptionStatistics");
+        assertEquals(eventConf.getEventPeriod(), Optional.of(Duration.of(10, ChronoUnit.SECONDS)));
+        assertEquals(eventConf.getEventThreshold(), Optional.of(Duration.of(12, ChronoUnit.SECONDS)));
+        assertEquals(eventConf.getStackTrace(), true);
+
+        assertTrue(conf.getBeans().isEmpty());
+
     }
-    
+
+
+
     @Test
     public void testParseHistogram() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
-                "events :\n" + 
-                "   - eventName : jdk.CPULoad\n" + 
-                "     eventPeriod : {seconds : 5}\n" +
-                "     stackTrace: true \n" +
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.CpuLoad,field=machineTotal\n" + 
-                "         objectType : histogram\n" + 
-                "         histogramConfig : \n" + 
-                "           eventField : machineTotal\n" 
+        Config conf = new ConfigParser().parse(
+                "events :\n" +
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects : \n" +
+                        "    - objectName : com.github.sbridges.beacon:event=Test\n" +
+                        "      objectType : histogram\n" +
+                        "      values : \n" +
+                        "        - event : jdk.ExceptionStatistics\n" +
+                        "          field : foo\n"
                 );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        Histogram histogram =  (Histogram) b1.getListener();
-        assertEquals("machineTotal", histogram.getEventField());
-        
+
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        Histogram bean =  (Histogram) b1.getMxBean();
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
     }
-    
+
     @Test
     public void testParseGauge() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
-                "events :\n" + 
-                "   - eventName : jdk.CPULoad\n" + 
-                "     eventPeriod : {seconds : 5}\n" +
-                "     stackTrace: true \n" +
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.CpuLoad,field=machineTotal\n" + 
-                "         objectType : gauge\n" + 
-                "         gaugeConfig : \n" + 
-                "           eventField : machineTotal\n" 
+        Config conf = new ConfigParser().parse(
+                "events :\n" +
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects : \n" +
+                        "    - objectName : com.github.sbridges.beacon:event=Test\n" +
+                        "      objectType : gauge\n" +
+                        "      values : \n" +
+                        "        - event : jdk.ExceptionStatistics\n" +
+                        "          field : foo\n"
                 );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        Gauge gauge =  (Gauge) b1.getListener();
-        assertEquals("machineTotal", gauge.getEventField());
-        
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        Gauge bean =  (Gauge) b1.getMxBean();
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
     }
-    
-    @Test
-    public void testParseGaugeUnknownField() throws Exception {
-        try {
-            new ConfigParser().parse(
-                    "events :\n" + 
-                    "   - eventName : jdk.CPULoad\n" + 
-                    "     eventPeriod : {seconds : 5}\n" + 
-                    "     objects :\n" + 
-                    "       - objectName : com.github.sbridges.beacon:event=jdk.CpuLoad,field=machineTotal\n" + 
-                    "         objectType : gauge\n" + 
-                    "         gaugeConfig : \n" + 
-                    "           eventField1 : machineTotal\n" 
-                    );
-            fail();
-        } catch(IllegalStateException e) {
-            assertTrue(e.getMessage().contains("unrecognized keys:[eventField1]"));
-        }
-    }
-    
+
+
     @Test
     public void testParseInspectorDefault() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
+        Config conf = new ConfigParser().parse(
                 "events :\n" +
-                "   - eventName : jdk.ExceptionStatistics\n" +  
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables\n" + 
-                "         objectType : inspector\n" +
-                "         inspectorConfig : {}\n"  
-                 
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects : \n" +
+                        "    - objectName : com.github.sbridges.beacon:event=Test\n" +
+                        "      objectType : inspector\n" +
+                        "      event : jdk.ExceptionStatistics \n"
                 );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        Inspector rate =  (Inspector) b1.getListener();
-        assertEquals(1, rate.getSize());
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        Inspector bean =  (Inspector) b1.getMxBean();
+        assertEquals(1, bean.getSize());
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
     }
-    
+
     @Test
-    public void testParseInspector() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
+    public void testParseInspectorSize() throws Exception {
+        Config conf = new ConfigParser().parse(
                 "events :\n" +
-                "   - eventName : jdk.ExceptionStatistics\n" +  
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables\n" + 
-                "         objectType : inspector\n" +
-                "         inspectorConfig : \n" + 
-                "            size : 5\n" 
-                );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        Inspector rate =  (Inspector) b1.getListener();
-        assertEquals(5, rate.getSize());
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects : \n" +
+                        "    - objectName : com.github.sbridges.beacon:event=Test\n" +
+                        "      objectType : inspector\n" +
+                        "      event : jdk.ExceptionStatistics \n" +
+                        "      inspectorConfig : \n" +
+                        "         size : 10"
+        );
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        Inspector bean =  (Inspector) b1.getMxBean();
+        assertEquals(10, bean.getSize());
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
     }
-    
-    
-    @Test
-    public void testParseRate() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
-                "events :\n" +
-                "   - eventName : jdk.ExceptionStatistics\n" + 
-                "     eventPeriod : {seconds : 5}\n" + 
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables\n" + 
-                "         objectType : rate\n" + 
-                "         rateConfig : \n" + 
-                "            valueField: throwables\n" +
-                "            period : {hours : 5}\n" + 
-                "            sum : true\n"                
-                );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        Rate rate =  (Rate) b1.getListener();
-        assertEquals("throwables", rate.getRateConfig().getValueVield());
-        assertEquals(Duration.of(5, ChronoUnit.HOURS), rate.getRateConfig().getPeriod());
-        assertEquals(true, rate.getRateConfig().isSum());
-        
-    }
-    
-    
+
     @Test
     public void testParseRateDefaults() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
+        Config conf = new ConfigParser().parse(
                 "events :\n" +
-                "   - eventName : jdk.ExceptionStatistics\n" + 
-                "     eventPeriod : {seconds : 5}\n" + 
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables\n" + 
-                "         objectType : rate\n" + 
-                "         rateConfig : \n" + 
-                "            valueField: throwables\n" 
-                );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        Rate rate =  (Rate) b1.getListener();
-        assertEquals("throwables", rate.getRateConfig().getValueVield());
-        assertEquals(Duration.of(5, ChronoUnit.SECONDS), rate.getRateConfig().getPeriod());
-        assertEquals(false, rate.getRateConfig().isSum());
-        
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects : \n" +
+                        "    - objectName : com.github.sbridges.beacon:event=Test\n" +
+                        "      objectType : rate\n" +
+                        "      values : \n" +
+                        "        - event : jdk.ExceptionStatistics\n" +
+                        "          field : foo\n"
+        );
+
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        Rate bean =  (Rate) b1.getMxBean();
+        assertFalse(bean.getRateConfig().isSum());
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
     }
-    
+
+    @Test
+    public void testParseRateWithSum() throws Exception {
+        Config conf = new ConfigParser().parse(
+                "events :\n" +
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects : \n" +
+                        "    - objectName : com.github.sbridges.beacon:event=Test\n" +
+                        "      objectType : rate\n" +
+                        "      values : \n" +
+                        "        - event : jdk.ExceptionStatistics\n" +
+                        "          field : foo\n" +
+                        "      rateConfig : \n" +
+                        "           sum : true"
+        );
+
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        Rate bean =  (Rate) b1.getMxBean();
+        assertTrue(bean.getRateConfig().isSum());
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
+    }
+
     @Test
     public void testParseTop() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
+        Config conf = new ConfigParser().parse(
                 "events :\n" +
-                "   - eventName : jdk.ExceptionStatistics\n" + 
-                "     eventPeriod : {seconds : 5}\n" + 
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables\n" + 
-                "         objectType : top\n" + 
-                "         topConfig : \n" + 
-                "            keyFields: [a, b]\n" +
-                "            valueField: c\n"                
-                );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        Top top =  (Top) b1.getListener();
-        TopConfig conf = top.getConfig();
-        assertEquals(Arrays.asList("a", "b"), conf.getKeyFields());
-        assertEquals(Duration.of(5, ChronoUnit.SECONDS), conf.getPeriod());
-        assertEquals("c", conf.getValueField());
-        
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects :\n" +
+                        "   - objectName : com.github.sbridges.beacon:event=jdk.ObjectCount,field=count\n" +
+                        "     objectType : top\n" +
+                        "     keyValues :\n" +
+                        "       - event : jdk.ExceptionStatistics\n" +
+                        "         keyFields : [objectClass]\n" +
+                        "         valueField : count\n"
+        );
+
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        Top bean =  (Top) b1.getMxBean();
+        assertEquals(bean.getConfig().getPeriod(), Duration.of(5, ChronoUnit.SECONDS));
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
     }
-    
+
     @Test
-    public void testParseTopSum() throws Exception {
-        List<Bean> beans = new ConfigParser().parse(
+    public void testParseTopNonDefault() throws Exception {
+        Config conf = new ConfigParser().parse(
                 "events :\n" +
-                "   - eventName : jdk.ExceptionStatistics\n" + 
-                "     eventPeriod : {seconds : 5}\n" + 
-                "     objects :\n" + 
-                "       - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables\n" + 
-                "         objectType : topSum\n" + 
-                "         topConfig : \n" + 
-                "            keyFields: [a, b]\n" +
-                "            period : {hours : 5}\n" +                 
-                "            valueField: c\n"                
-                );
-        assertEquals(1, beans.size());
-        Bean b1 = beans.get(0);
-        TopSum top =  (TopSum) b1.getListener();
-        TopConfig conf = top.getConfig();
-        assertEquals(Arrays.asList("a", "b"), conf.getKeyFields());
-        assertEquals(Duration.of(5, ChronoUnit.HOURS), conf.getPeriod());
-        assertEquals("c", conf.getValueField());
-        
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects :\n" +
+                        "   - objectName : com.github.sbridges.beacon:event=jdk.ObjectCount,field=count\n" +
+                        "     objectType : top\n" +
+                        "     topConfig :\n" +
+                        "       period : {seconds : 60}\n" +
+                        "     keyValues :\n" +
+                        "       - event : jdk.ExceptionStatistics\n" +
+                        "         keyFields : [objectClass]\n" +
+                        "         valueField : count\n"
+
+        );
+
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        Top bean =  (Top) b1.getMxBean();
+        assertEquals(bean.getConfig().getPeriod(), Duration.of(60, ChronoUnit.SECONDS));
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
+    }
+
+    @Test
+    public void testParseTopSumNonDefault() throws Exception {
+        Config conf = new ConfigParser().parse(
+                "events :\n" +
+                        "     - eventName : jdk.ExceptionStatistics\n" +
+                        "objects :\n" +
+                        "   - objectName : com.github.sbridges.beacon:event=jdk.ObjectCount,field=count\n" +
+                        "     objectType : topSum\n" +
+                        "     topConfig :\n" +
+                        "       period : {seconds : 60}\n" +
+                        "     keyValues :\n" +
+                        "       - event : jdk.ExceptionStatistics\n" +
+                        "         keyFields : [objectClass]\n" +
+                        "         valueField : count\n"
+
+        );
+
+        assertEquals(1, conf.getBeans().size());
+        Bean b1 = conf.getBeans().get(0);
+        TopSum bean =  (TopSum) b1.getMxBean();
+        assertEquals(bean.getConfig().getPeriod(), Duration.of(60, ChronoUnit.SECONDS));
+        assertEquals("jdk.ExceptionStatistics", b1.getListeners().keySet().iterator().next());
+
     }
 }

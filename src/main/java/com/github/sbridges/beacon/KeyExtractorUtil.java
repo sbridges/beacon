@@ -1,4 +1,4 @@
-package com.github.sbridges.beacon.internal;
+package com.github.sbridges.beacon;
 
 import java.util.List;
 import java.util.function.Function;
@@ -8,10 +8,10 @@ import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedThread;
 
-public final class RecordedEventsUtil {
+final class KeyExtractorUtil {
     
     
-    public static Function<RecordedEvent, String> makeKeyExtractor(
+    static Function<RecordedEvent, String> makeKeyExtractor(
             RecordedEvent e,
             List<String> keyFields) {
      

@@ -12,7 +12,7 @@ import jdk.jfr.Name;
 @Label("Test")
 public class TestEvent extends Event {
     
-    static final String TEST_EVENT = "com.github.sbridges.beacon.internal.test.TestEvent";
+    public static final String TEST_EVENT = "com.github.sbridges.beacon.internal.test.TestEvent";
 
     @Name("Id")
     public final String id = UUID.randomUUID().toString();

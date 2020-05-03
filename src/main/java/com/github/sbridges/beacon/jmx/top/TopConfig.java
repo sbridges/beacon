@@ -11,22 +11,10 @@ import com.github.sbridges.beacon.jmx.topsum.TopSum;
  */
 public final class TopConfig {
 
-    private final String valueField;
-    private final List<String> keyFields;
     private final Duration period;
 
-    public TopConfig(List<String> keyFields, String valueField, Duration period) {
-        this.keyFields = List.copyOf(keyFields);
-        this.valueField = valueField;
+    public TopConfig(Duration period) {
         this.period = period;
-    }
-
-    public String getValueField() {
-        return valueField;
-    }
-
-    public List<String> getKeyFields() {
-        return keyFields;
     }
 
     public Duration getPeriod() {
@@ -35,7 +23,7 @@ public final class TopConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(keyFields, period, valueField);
+        return Objects.hash(period);
     }
 
     @Override
@@ -50,15 +38,12 @@ public final class TopConfig {
             return false;
         }
         TopConfig other = (TopConfig) obj;
-        return Objects.equals(keyFields, other.keyFields)
-                && Objects.equals(period, other.period)
-                && Objects.equals(valueField, other.valueField);
+        return Objects.equals(period, other.period);
     }
 
     @Override
     public String toString() {
-        return "TopConfig [valueField=" + valueField + ", keyFields="
-                + keyFields + ", period=" + period + "]";
+        return "TopConfig [period=" + period + "]";
     }
 
 

@@ -3,15 +3,13 @@ package com.github.sbridges.beacon.jmx.rate;
 import java.time.Clock;
 import java.util.Objects;
 
-import com.github.sbridges.beacon.RecordedEventListener;
+import com.github.sbridges.beacon.listeners.DoubleValueListener;
 import com.github.sbridges.beacon.internal.FirstException;
-
-import jdk.jfr.consumer.RecordedEvent;
 
 /**
  * Implementation of {@link RateMXBean}
  */
-public final class Rate implements RecordedEventListener, RateMXBean {
+public final class Rate implements DoubleValueListener, RateMXBean {
 
     private final FirstException firstException = new FirstException();
 
@@ -30,15 +28,13 @@ public final class Rate implements RecordedEventListener, RateMXBean {
     }
 
     @Override
-    public void hear(RecordedEvent e) {
+    public void hear(double newValue) {
         try {
-            double newValue = e.getDouble(rateConfig.getValueVield());
             if (rateConfig.isSum()) {
                 value += newValue;
             } else {
                 value = newValue;
             }
-
         } catch (RuntimeException ex) {
             firstException.hear(ex);
         }
@@ -112,6 +108,11 @@ public final class Rate implements RecordedEventListener, RateMXBean {
     @Override
     public String toString() {
         return "Rate [rateConfig=" + rateConfig + "]";
+    }
+
+    @Override
+    public void hearException(Exception e) {
+        firstException.hear(e);
     }
 
 }

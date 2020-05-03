@@ -25,20 +25,12 @@ public class TopTest {
     StubClock clock = new StubClock(); 
     long now = clock.millis();
     
-    @BeforeClass
-    public static void createEvents() {
-        events = TestEventFactory.createRecordedEvents(
-                t -> {t.aLong = 1; t.aString = "a";},
-                t -> {t.aLong = 2; t.aString = "b";},
-                t -> {t.aLong = 3; t.aString = "c";}
-                
-                );
-    }
+
     
     @Test
     public void testEmpty() throws Exception {
         Top top = new Top(
-                new TopConfig(Arrays.asList("aString"), "aLong", Duration.of(1, ChronoUnit.SECONDS)),
+                new TopConfig(Duration.of(1, ChronoUnit.SECONDS)),
                 clock);
         
         assertEquals(0, top.getStats().length);
@@ -49,13 +41,13 @@ public class TopTest {
     @Test
     public void testTop() throws Exception {
         Top top = new Top(
-                new TopConfig(Arrays.asList("aString"), "aLong", Duration.of(1, ChronoUnit.SECONDS)),
+                new TopConfig(Duration.of(1, ChronoUnit.SECONDS)),
                 clock);
         
         top.flush();
-        top.hear(events.get(1));
-        top.hear(events.get(0));
-        top.hear(events.get(2));
+        top.hear("b", 2);
+        top.hear("a", 1);
+        top.hear("c", 3);
         
         clock.advanceMillis(1000);
         top.flush();
@@ -70,7 +62,7 @@ public class TopTest {
         assertEquals(1.0, top.getStats()[2].getValue(), 0);
         
         assertEquals(
-                "aString              aLong               \n" + 
+                "key                  value               \n" +
                 "-------------------- --------------------\n" + 
                 "c                                       3\n" + 
                 "b                                       2\n" + 
@@ -92,19 +84,19 @@ public class TopTest {
         
         
         Top top = new Top(
-                new TopConfig(Arrays.asList("aString"), "aLong", Duration.of(1, ChronoUnit.SECONDS)),
+                new TopConfig(Duration.of(1, ChronoUnit.SECONDS)),
                 clock);
         
         top.flush();
-        top.hear(eventsLocal.get(0));
+        top.hear("a", 1);
         
         clock.advanceMillis(1000);
         top.flush();
         
         assertEquals(
-                "aString                              aLong               \n" + 
-                "------------------------------------ --------------------\n" + 
-                "averyveryverywellnotsoverylongstring                    1", 
+                "key                  value               \n" +
+                        "-------------------- --------------------\n" +
+                        "a                                       1",
                 Stream.of(top.getStatsReport()).collect(Collectors.joining("\n")));
         
     }

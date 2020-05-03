@@ -1,25 +1,24 @@
 package com.github.sbridges.beacon.jmx.topsum;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import com.github.sbridges.beacon.RecordedEventListener;
 import com.github.sbridges.beacon.internal.FirstException;
-import com.github.sbridges.beacon.internal.RecordedEventsUtil;
 import com.github.sbridges.beacon.internal.TopIntermediateResults;
 import com.github.sbridges.beacon.jmx.top.TopConfig;
+import com.github.sbridges.beacon.listeners.KeyValueDurationListener;
 import jdk.jfr.consumer.RecordedEvent;
 
 /**
  * implementation of {@link TopSumMXBean}
  */
-public final class TopSum implements RecordedEventListener, TopSumMXBean{
+public final class TopSum implements KeyValueDurationListener, TopSumMXBean{
 
     private final Clock clock;
     private final FirstException firstException = new FirstException();
@@ -40,22 +39,12 @@ public final class TopSum implements RecordedEventListener, TopSumMXBean{
     }
     
     @Override
-    public void hear(RecordedEvent e) {
+    public void hear(String key, double value, Duration duration) {
         try {
-            if(keyExtractor == null) {
-                keyExtractor = RecordedEventsUtil.makeKeyExtractor(e, conf.getKeyFields());
-            }
-            String key = keyExtractor.apply(e);
-            double value = e.getDouble(conf.getValueField());
-            
-            
             TopIntermediateResults intermediate = collecting.computeIfAbsent(
                     key, 
                     __ -> new TopIntermediateResults());
-       
-            long duration = e.getDuration().toMillis();
-            intermediate.add(value, duration); 
-            
+            intermediate.add(value, duration.toNanos());
         } catch(Exception ex) {
             firstException.hear(ex);
         }
@@ -98,9 +87,8 @@ public final class TopSum implements RecordedEventListener, TopSumMXBean{
         
         List<String> results = new ArrayList<>();
 
-        String key = conf.getKeyFields().stream().collect(Collectors.joining(" "));
         results.add(
-                String.format("%-" + length + "s %-20s %-20s %-20s", key, conf.getValueField(), "invocations", "duration (ms)"));
+                String.format("%-" + length + "s %-20s %-20s %-20s", "key", "value", "invocations", "duration (ms)"));
 
         results.add("-".repeat(length) + " " + ("-------------------- ".repeat(3)));
         for(TopSumStatMBean bean : reportOn) {
@@ -109,7 +97,7 @@ public final class TopSum implements RecordedEventListener, TopSumMXBean{
                            bean.getKey(), 
                            bean.getValue(), 
                            bean.events(), 
-                           bean.getTotalDuration())
+                           bean.getTotalDurationNanos())
                     );
         }
         if(results.size() == 2) {
@@ -122,6 +110,11 @@ public final class TopSum implements RecordedEventListener, TopSumMXBean{
     //VisibleForTesting
     public TopConfig getConfig() {
         return conf;
+    }
+
+    @Override
+    public void hearException(Exception e) {
+        firstException.hear(e);
     }
 
 }

@@ -19,7 +19,17 @@ public interface TopSumStatMBean {
     /**
      * @return the duration for all events summed over the last reporting period
      */
-    long getTotalDuration();
+    long getTotalDurationNanos();
+
+    /**
+     * @return the duration for all events summed over the last reporting period
+     */
+    long getTotalDurationMillis();
+
+    /**
+     * @return the duration for all events summed over the last reporting period
+     */
+    long getTotalDurationSeconds();
     
     /**
      * @return the number of events seen over the last reporting period

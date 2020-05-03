@@ -1,112 +1,146 @@
 events :
    - eventName : jdk.ExceptionStatistics
      eventPeriod : {seconds : 5}
-     objects :
-       - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables
-         objectType : rate
-         rateConfig : 
-            valueField: throwables
    - eventName : jdk.SocketRead
-     objects :
-       - objectName : com.github.sbridges.beacon:event=jdk.SocketRead,by=rate
-         objectType : rate
-         rateConfig : 
-            valueField: bytesRead
-            sum : true
-       - objectName : com.github.sbridges.beacon:event=jdk.SocketRead,by=byHostPort
-         objectType : topSum
-         topConfig : 
-            keyFields : [host, port]
-            valueField : bytesRead
-            period : {seconds : 5}
-       - objectName : com.github.sbridges.beacon:event=jdk.SocketRead,by=byHost
-         objectType : topSum
-         topConfig : 
-            keyFields : [host]
-            valueField : bytesRead
-            period : {seconds : 5}
    - eventName : jdk.SocketWrite
-     objects :
-       - objectName : com.github.sbridges.beacon:event=jdk.SocketWrite,by=rate
-         objectType : rate
-         rateConfig : 
-            valueField: bytesWritten
-            sum : true
-            period : {seconds : 5}
-       - objectName : com.github.sbridges.beacon:event=jdk.SocketWrite,by=byHostPort
-         objectType : topSum
-         topConfig : 
-            keyFields : [host, port]
-            valueField : bytesWritten
-            period : {seconds : 5}
-       - objectName : com.github.sbridges.beacon:event=jdk.SocketWrite,by=byHost
-         objectType : topSum
-         topConfig : 
-            keyFields : [host]
-            valueField : bytesWritten
-            period : {seconds : 5}
    - eventName : jdk.FileRead
-     objects :
-       - objectName : com.github.sbridges.beacon:event=jdk.FileRead,by=rate
-         objectType : rate
-         rateConfig : 
-            valueField: bytesRead
-            sum : true
-            period : {seconds : 5}
-       - objectName : com.github.sbridges.beacon:event=jdk.FileRead,by=byPath
-         objectType : topSum
-         topConfig : 
-            keyFields : [path]
-            valueField : bytesRead
-            period : {seconds : 5} 
    - eventName : jdk.FileWrite
-     objects :
-       - objectName : com.github.sbridges.beacon:event=jdk.FileWrite,by=rate
-         objectType : rate
-         rateConfig : 
-            valueField: bytesWritten
-            sum : true
-            period : {seconds : 5}
-       - objectName : com.github.sbridges.beacon:event=jdk.FileWrite,by=byPath
-         objectType : topSum
-         topConfig : 
-            keyFields : [path]
-            valueField : bytesWritten
-            period : {seconds : 5} 
    - eventName : jdk.ObjectCount
      eventPeriod : {seconds : 60}
-     objects :
-       - objectName : com.github.sbridges.beacon:event=jdk.ObjectCount,field=count
-         objectType : top
-         topConfig : 
-            keyFields : [objectClass]
-            valueField : count
-            period : {seconds : 60}         
-       - objectName : com.github.sbridges.beacon:event=jdk.ObjectCount,field=totalSize
-         objectType : top
-         topConfig : 
-            keyFields : [objectClass]
-            valueField : totalSize
-            period : {seconds : 60}       
    - eventName : jdk.CPULoad
      eventPeriod : {seconds : 5}
-     objects :
-       - objectName : com.github.sbridges.beacon:event=jdk.CpuLoad,field=machineTotal
-         objectType : gauge
-         gaugeConfig : 
-           eventField : machineTotal
-       - objectName : com.github.sbridges.beacon:event=jdk.CpuLoad,field=jvmUser
-         objectType : gauge
-         gaugeConfig : 
-           eventField : jvmUser
-       - objectName : com.github.sbridges.beacon:event=jdk.CpuLoad,field=jvmSystem
-         objectType : gauge
-         gaugeConfig : 
-           eventField : jvmSystem
    - eventName : jdk.ThreadContextSwitchRate
      eventPeriod : {seconds : 5}
-     objects :
-       - objectName : com.github.sbridges.beacon:event=jdk.ThreadContextSwitchRate,field=switchRate
-         objectType : gauge
-         gaugeConfig : 
-           eventField : switchRate       
+   - eventName : jdk.ObjectAllocationOutsideTLAB
+   - eventName : jdk.ObjectAllocationInNewTLAB
+objects :
+   - objectName : com.github.sbridges.beacon:event=AllocationRate
+     objectType : rate
+     rateConfig :
+       sum : true
+     values :
+         - event : jdk.ObjectAllocationOutsideTLAB
+           field : allocationSize
+         - event : jdk.ObjectAllocationInNewTLAB
+           field : tlabSize
+   - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables
+     objectType : rate
+     values :
+       - event : jdk.ExceptionStatistics
+         field : throwables
+   - objectName : com.github.sbridges.beacon:event=jdk.SocketRead,by=rate
+     objectType : rate
+     rateConfig :
+       sum : true
+     values:
+       - event : jdk.SocketRead
+         field : bytesRead
+   - objectName : com.github.sbridges.beacon:event=jdk.SocketRead,by=byHostPort
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.SocketRead
+         keyFields : [host, port]
+         valueField : bytesRead
+   - objectName : com.github.sbridges.beacon:event=jdk.SocketRead,by=byHost
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.SocketRead
+         keyFields : [host]
+         valueField  : bytesRead
+   - objectName : com.github.sbridges.beacon:event=jdk.SocketWrite,by=rate
+     objectType : rate
+     rateConfig :
+       period : {seconds : 5}
+       sum : true
+     values :
+       - event : jdk.SocketRead
+         field : bytesRead
+   - objectName : com.github.sbridges.beacon:event=jdk.SocketWrite,by=byHostPort
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.SocketRead
+         keyFields : [host, port]
+         valueField : bytesRead
+   - objectName : com.github.sbridges.beacon:event=jdk.SocketWrite,by=byHost
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.SocketRead
+         keyFields : [host]
+         valueField : bytesRead
+   - objectName : com.github.sbridges.beacon:event=jdk.FileRead,by=rate
+     objectType : rate
+     rateConfig :
+       sum : true
+       period : {seconds : 5}
+     values :
+       - event : jdk.FileRead
+         field : bytesRead
+   - objectName : com.github.sbridges.beacon:event=jdk.FileRead,by=byPath
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.FileRead
+         keyFields : [path]
+         valueField : bytesRead
+   - objectName : com.github.sbridges.beacon:event=jdk.FileWrite,by=rate
+     objectType : rate
+     rateConfig :
+       period : {seconds : 5}
+       sum : true
+     values :
+       - event : jdk.FileWrite
+         field : bytesWritten
+   - objectName : com.github.sbridges.beacon:event=jdk.FileWrite,by=byPath
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.FileWrite
+         keyFields : [path]
+         valueField : bytesWritten
+   - objectName : com.github.sbridges.beacon:event=jdk.ObjectCount,field=count
+     objectType : top
+     topConfig :
+       period : {seconds : 60}
+     keyValues :
+       - event : jdk.ObjectCount
+         keyFields : [objectClass]
+         valueField : count
+   - objectName : com.github.sbridges.beacon:event=jdk.ObjectCount,field=totalSize
+     objectType : top
+     topConfig :
+       period : {seconds : 60}
+     keyValues :
+       - event : jdk.ObjectCount
+         keyFields : [objectClass]
+         valueField : totalSize
+   - objectName : com.github.sbridges.beacon:event=jdk.CPULoad,field=machineTotal
+     objectType : gauge
+     values :
+       - event : jdk.CPULoad
+         field : machineTotal
+   - objectName : com.github.sbridges.beacon:event=jdk.CPULoad,field=jvmUser
+     objectType : gauge
+     values :
+       - event : jdk.CPULoad
+         field : jvmUser
+   - objectName : com.github.sbridges.beacon:event=jdk.CPULoad,field=jvmSystem
+     objectType : gauge
+     values :
+       - event : jdk.CPULoad
+         field : jvmSystem
+   - objectName : com.github.sbridges.beacon:event=jdk.ThreadContextSwitchRate,field=switchRate
+     objectType : gauge
+     values :
+       - event : jdk.ThreadContextSwitchRate
+         field : switchRate
+

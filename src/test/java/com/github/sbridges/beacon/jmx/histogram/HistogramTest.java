@@ -1,4 +1,4 @@
-package com.github.sbridges.beacon.histogram;
+package com.github.sbridges.beacon.jmx.histogram;
 
 import static org.junit.Assert.*;
 
@@ -14,20 +14,14 @@ public class HistogramTest {
 
     StubClock clock = new StubClock();
     
-    List<RecordedEvent> events = TestEventFactory.createRecordedEvents(
-            t -> t.aLong = 1,
-            t -> t.aLong = 2,
-            t -> t.aLong = 3
-            
-            );
-    
-    Histogram fixture = new Histogram(new HistogramConfig("aLong"), clock);
+
+    Histogram fixture = new Histogram(clock);
     
     @Test
     public void test() {
       fixture.flush();
-      fixture.hear(events.get(0));
-      fixture.hear(events.get(1));
+      fixture.hear(1);
+      fixture.hear(2);
       fixture.flush();
       
       assertEquals(fixture.getAllTimeMean(), 1.5, 0.001);
@@ -46,7 +40,7 @@ public class HistogramTest {
       assertEquals(fixture.getLastMinuteEvents(), 2);
       
       
-      fixture.hear(events.get(2));
+      fixture.hear(3);
       clock.advanceSeconds(60);
       fixture.flush();
       

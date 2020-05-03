@@ -23,7 +23,7 @@ public interface BeaconMXBean {
     /**
      * @return how many jfr events have we received from our RecordingStream 
      */
-    public long getEvents();
+    public long getRecordedEvents();
     
     /**
      * @return how many jfr flushes have we received from our RecordingStream 

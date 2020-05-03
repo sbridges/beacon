@@ -1,21 +1,22 @@
 package com.github.sbridges.beacon.jmx.topsum;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public final class TopSumStat implements TopSumStatMBean, Comparable<TopSumStat> {
 
     private final String key;
     private final double value;
     private final int events;
-    private final long totalDuration;
+    private final long totalDurationNanos;
 
     
     public TopSumStat(String key, double value, int events,
-            long totalDuration) {
+            long totalDurationNanos) {
         this.key = key;
         this.value = value;
         this.events = events;
-        this.totalDuration = totalDuration;
+        this.totalDurationNanos = totalDurationNanos;
     }
 
     @Override
@@ -34,8 +35,19 @@ public final class TopSumStat implements TopSumStatMBean, Comparable<TopSumStat>
     }
 
     @Override
-    public long getTotalDuration() {
-        return totalDuration;
+    public long getTotalDurationNanos() {
+        return totalDurationNanos;
+    }
+
+    @Override
+    public long getTotalDurationMillis() {
+        return TimeUnit.MILLISECONDS.toSeconds(totalDurationNanos);
+    }
+
+
+    @Override
+    public long getTotalDurationSeconds() {
+        return TimeUnit.NANOSECONDS.toSeconds(totalDurationNanos);
     }
 
     @Override
@@ -48,7 +60,7 @@ public final class TopSumStat implements TopSumStatMBean, Comparable<TopSumStat>
         if(result != 0) {
             return result;
         }
-        result = Long.compare(o.totalDuration, this.totalDuration);
+        result = Long.compare(o.totalDurationNanos, this.totalDurationNanos);
         if(result != 0) {
             return result;
         }
@@ -57,7 +69,7 @@ public final class TopSumStat implements TopSumStatMBean, Comparable<TopSumStat>
 
     @Override
     public int hashCode() {
-        return Objects.hash(events, key, totalDuration, value);
+        return Objects.hash(events, key, totalDurationNanos, value);
     }
 
     @Override
@@ -73,7 +85,7 @@ public final class TopSumStat implements TopSumStatMBean, Comparable<TopSumStat>
         }
         TopSumStat other = (TopSumStat) obj;
         return events == other.events && Objects.equals(key, other.key)
-                && totalDuration == other.totalDuration
+                && totalDurationNanos == other.totalDurationNanos
                 && Double.doubleToLongBits(value) == Double
                         .doubleToLongBits(other.value);
     }
@@ -81,7 +93,7 @@ public final class TopSumStat implements TopSumStatMBean, Comparable<TopSumStat>
     @Override
     public String toString() {
         return "TopSumStat [key=" + key + ", value=" + value + ", events="
-                + events + ", totalDuration=" + totalDuration + "]";
+                + events + ", totalDurationNanos=" + totalDurationNanos + "]";
     }
         
    

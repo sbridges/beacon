@@ -10,9 +10,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.github.sbridges.beacon.RecordedEventListener;
+import com.github.sbridges.beacon.listeners.KeyValueListener;
 import com.github.sbridges.beacon.internal.FirstException;
-import com.github.sbridges.beacon.internal.RecordedEventsUtil;
 
 import jdk.jfr.consumer.RecordedEvent;
 
@@ -23,7 +22,7 @@ class MutableDouble {
 /**
  * Implementation of {@link TopMXBean}
  */
-public final class Top implements TopMXBean, RecordedEventListener {
+public final class Top implements TopMXBean, KeyValueListener {
     private final Clock clock;
     private final FirstException firstException = new FirstException();
     private final TopConfig conf;
@@ -43,15 +42,8 @@ public final class Top implements TopMXBean, RecordedEventListener {
     }
     
     @Override
-    public void hear(RecordedEvent e) {
+    public void hear(String key, double value) {
         try {
-            if(keyExtractor == null) {
-                keyExtractor = RecordedEventsUtil.makeKeyExtractor(e, conf.getKeyFields());
-            }
-            String key = keyExtractor.apply(e);
-            double value = e.getDouble(conf.getValueField());
-            
-            
             MutableDouble intermediate = collecting.computeIfAbsent(
                     key, 
                     __ -> new MutableDouble());
@@ -102,9 +94,8 @@ public final class Top implements TopMXBean, RecordedEventListener {
         length = Math.min(length, 512);
         
         List<String> results = new ArrayList<>();
-        String key = conf.getKeyFields().stream().collect(Collectors.joining(" "));
         results.add(
-                String.format("%-" + length + "s %-20s", key, conf.getValueField()));
+                String.format("%-" + length + "s %-20s", "key", "value"));
 
         results.add("-".repeat(length) + " --------------------");
         for(TopStatMBean bean : reportOn) {
@@ -146,7 +137,10 @@ public final class Top implements TopMXBean, RecordedEventListener {
     public String toString() {
         return "Top [conf=" + conf + "]";
     }
-    
-    
+
+    @Override
+    public void hearException(Exception e) {
+        firstException.hear(e);
+    }
 
 }

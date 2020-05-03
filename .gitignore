@@ -12,6 +12,9 @@ bin
 
 /target/
 
+.idea
+*.iml
+
 dependency-reduced-pom.xml
 .DS_Store
 
