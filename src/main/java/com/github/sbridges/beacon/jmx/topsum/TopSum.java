@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import com.github.sbridges.beacon.internal.FirstException;
@@ -96,8 +97,8 @@ public final class TopSum implements KeyValueDurationListener, TopSumMXBean{
                    String.format("%-" + length + "s %20.0f %20d %20d", 
                            bean.getKey(), 
                            bean.getValue(), 
-                           bean.events(), 
-                           bean.getTotalDurationNanos())
+                           bean.events(),
+                           TimeUnit.NANOSECONDS.toMillis(bean.getTotalDurationNanos()))
                     );
         }
         if(results.size() == 2) {
