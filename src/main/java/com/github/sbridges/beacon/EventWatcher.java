@@ -33,25 +33,6 @@ public final class EventWatcher {
     private long recordedEvents;
     private long flushes;
     
-    static {
-        
-        //see comments later
-        //we are simulating a flush
-        //in testing we see that the recording stream sometimes stops
-        //giving us flush events, so simulate this with an event hopefully once a chunk
-        FlightRecorder.register(FlushEvent.class);
-        FlushEvent fe = new FlushEvent();
-        new ScheduledThreadPoolExecutor(1, r -> {
-            Thread answer = new Thread(r);
-            answer.setName(EventWatcher.class.getName() + ".flush");
-            answer.setDaemon(true);
-            return answer;
-        }).scheduleWithFixedDelay(() -> {
-            fe.begin();
-            fe.commit();
-        }, 1, 1, TimeUnit.SECONDS);
-    }
-    
     public EventWatcher(List<Bean> coolBeans, List<EventConfig> events) {
         this.events = Util.immutableCopyOf(events);
         this.coolBeans = Util.immutableCopyOf(coolBeans);
@@ -138,14 +119,14 @@ public final class EventWatcher {
             
             //originally tried to use flush, but running on some larger
             //programs we would sometimes stop seeing flush events
-            //TODO - enable this and remove our own flush event
+            //TODO - enable this and remove usage of jdk.Flush
             //rs.onFlush(() -> {
             //    flush(rs);
             //});
-            
-            
-            rs.enable(FlushEvent.class);
-            rs.onEvent(FlushEvent.NAME, __ -> {
+
+
+            rs.enable("jdk.Flush");
+            rs.onEvent("jdk.Flush", __ -> {
                 flush(rs);
             });
             
