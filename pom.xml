@@ -3,7 +3,7 @@
 
 	<groupId>com.github.sbridges</groupId>
 	<artifactId>beacon</artifactId>
-	<version>0.9.0.2-SNAPSHOT</version>
+	<version>0.9.0.3-SNAPSHOT</version>
 	<name>beacon</name>
 	<description>A tool to expose JFR events over JMX.</description>
 	<url>https://github.com/sbridges/beacon</url>

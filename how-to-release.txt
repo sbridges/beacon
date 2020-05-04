@@ -2,7 +2,7 @@ update .m2/settings.xml to be
 
 
 <settings xmlns="http://maven.apache.org/settings/1.0.0" >
-    <servers
+    <servers>
         <server>
             <id>ossrh</id>
             <!-- Your sonatype username -->
