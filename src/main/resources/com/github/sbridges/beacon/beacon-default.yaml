@@ -23,6 +23,17 @@ objects :
            field : allocationSize
          - event : jdk.ObjectAllocationInNewTLAB
            field : tlabSize
+   - objectName : com.github.sbridges.beacon:event=aggregate.AllocationRate,field=byThread
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.ObjectAllocationOutsideTLAB
+         valueField : allocationSize
+         keyFields : [eventThread]
+       - event : jdk.ObjectAllocationInNewTLAB
+         valueField : tlabSize
+         keyFields : [eventThread]
    - objectName : com.github.sbridges.beacon:event=jdk.ExceptionStatistics,field=throwables
      objectType : rate
      values :
