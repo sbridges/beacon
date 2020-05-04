@@ -13,6 +13,8 @@ events :
      eventPeriod : {seconds : 5}
    - eventName : jdk.ObjectAllocationOutsideTLAB
    - eventName : jdk.ObjectAllocationInNewTLAB
+   - eventName : jdk.ExecutionSample
+     eventPeriod : {millis : 5}
 objects :
    - objectName : com.github.sbridges.beacon:event=aggregate.AllocationRate,field=size
      objectType : rate
@@ -185,4 +187,13 @@ objects :
      values :
        - event : jdk.ThreadContextSwitchRate
          field : switchRate
+   - objectName : com.github.sbridges.beacon:event=jdk.ExecutionSamplee,by=byMethod
+     objectType : topSum
+     topConfig :
+       period : {seconds : 5}
+     keyValues :
+       - event : jdk.ExecutionSample
+         keyFields : [stack$top]
+         valueField : $0
+
 

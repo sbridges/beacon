@@ -28,7 +28,7 @@ public final class Bean {
                         t -> {
                             return event -> {
                                 try {
-                                    bean.hear(event.getDouble(t.getField()));
+                                    bean.hear(getValue(event, t.getField()));
                                 } catch (RuntimeException re) {
                                     bean.hearException(re);
                                 }
@@ -95,7 +95,7 @@ public final class Bean {
                 }
                 bean.hear(
                         keyExtractor.apply(event),
-                        event.getDouble(t.getField())
+                        getValue(event, t.getField())
                 );
             }
         };
@@ -113,11 +113,18 @@ public final class Bean {
                 }
                 bean.hear(
                         keyExtractor.apply(event),
-                        event.getDouble(t.getField()),
+                        getValue(event, t.getField()),
                         event.getDuration()
                 );
             }
         };
+    }
+
+    private static double getValue(RecordedEvent event, String field) {
+        if(field.equals("$0")) {
+            return 0;
+        }
+        return event.getDouble(field);
     }
 
     public Bean(String objectName, Flushable mxBean, Map<String, Consumer<RecordedEvent>> listeners) {

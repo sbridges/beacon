@@ -5,8 +5,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import jdk.jfr.ValueDescriptor;
-import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordedThread;
+import jdk.jfr.consumer.*;
 
 final class KeyExtractorUtil {
     
@@ -33,8 +32,30 @@ final class KeyExtractorUtil {
             return sb.toString();
         };
     }
-    
+
+    private static String format(RecordedStackTrace s) {
+        if(s == null || s.getFrames() == null || s.getFrames().isEmpty()) {
+            return "null";
+        }
+        RecordedFrame rf = s.getFrames().get(0);
+        if(!rf.isJavaFrame()) {
+            return rf.getType();
+        }
+        if(rf.getMethod() == null) {
+            return "??";
+        }
+        return formatMethod(rf.getMethod());
+    }
+
+    private static String formatMethod(RecordedMethod m) {
+        return m.getType().getName() + "." + m.getName() + " : " + m.getDescriptor();
+    }
+
     private static Function<RecordedEvent, String> makeKeyExtractor(RecordedEvent e, String field) {
+        if(field.equalsIgnoreCase("stack$top")) {
+            return event -> format(event.getStackTrace());
+        }
+
         for(ValueDescriptor vd : e.getFields()) {
             if(vd.getName().equals(field)) {
                 switch(vd.getTypeName()) {
@@ -54,8 +75,18 @@ final class KeyExtractorUtil {
                     return event -> event.getClass(field).getName();
                 case "java.lang.Thread" :
                     return event -> {
-                        RecordedThread thread = event.getThread(field);
-                        return thread.getJavaName() + "(" + thread.getJavaThreadId() + ")";
+                        Object v = event.getValue(field);
+                        if(v == null) {
+                            return "null";
+                        }
+                        if(v instanceof RecordedThread) {
+                            RecordedThread thread = (RecordedThread) v;
+                            return thread.getJavaName() + "(" + thread.getJavaThreadId() + ")";
+                        }
+                        //sometimes this returns a recorded object which is not a
+                        //thread, and trying to call toString() on that fails with
+                        //a class cast exception
+                        return "??" + v.getClass().getSimpleName();
                     };
                 default : throw new IllegalStateException("unrecognized:" + vd.getTypeName());
                 }
