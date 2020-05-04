@@ -28,3 +28,4 @@ git commit -am "update version"
 mvn deploy
 git push origin --set-upstream release-<version>
 update pom in master
+create release in github with release notes
